@@ -1,0 +1,242 @@
+# ============================================================
+# Archivo: casa_inteligente.py
+# Autor: Victoria De Abreu Pires
+# Fecha: 2025-10-17
+# Descripción:
+#   Simulación de un sistema de Casa Inteligente con Programación
+#   Orientada a Objetos (POO) en Python, aplicando los conceptos de:
+#     - Clases abstractas (abc.ABC y @abstractmethod)
+#     - Herencia y sobrescritura
+#     - Encapsulamiento
+#     - Composición (CasaInteligente contiene dispositivos)
+#     - Polimorfismo
+# ============================================================
+
+from __future__ import annotations
+from abc import ABC, abstractmethod
+from typing import List
+import random
+import time
+
+# ------------------------------------------------------------
+# Clase abstracta: Dispositivo
+# ------------------------------------------------------------
+class Dispositivo(ABC):
+    """
+    Clase base abstracta que define la estructura de cualquier dispositivo inteligente.
+    
+    Atributos privados:
+        __id_dispositivo (str): Identificador único.
+        __estado (bool): True si está encendido, False si está apagado.
+    """
+
+    def __init__(self, id_dispositivo: str) -> None:
+        self.__id_dispositivo: str = id_dispositivo
+        self.__estado: bool = False
+
+    # ---------- Encapsulamiento ----------
+    @property
+    def id_dispositivo(self) -> str:
+        """Devuelve el identificador del dispositivo."""
+        return self.__id_dispositivo
+
+    @property
+    def estado(self) -> bool:
+        """Devuelve el estado actual del dispositivo."""
+        return self.__estado
+
+    # Solo las subclases podrán cambiar el estado mediante los métodos concretos
+    def _set_estado(self, nuevo_estado: bool) -> None:
+        self.__estado = nuevo_estado
+
+    # ---------- Métodos abstractos ----------
+    @abstractmethod
+    def encender(self) -> None:
+        pass
+
+    @abstractmethod
+    def apagar(self) -> None:
+        pass
+
+    @abstractmethod
+    def mostrar_datos(self) -> None:
+        pass
+
+
+# ------------------------------------------------------------
+# Subclase: LuzInteligente
+# ------------------------------------------------------------
+class LuzInteligente(Dispositivo):
+    """Dispositivo tipo luz inteligente con control de intensidad (0–100%)."""
+
+    def __init__(self, id_dispositivo: str) -> None:
+        super().__init__(id_dispositivo)
+        self.__intensidad: int = 0
+
+    def encender(self) -> None:
+        self._set_estado(True)
+        self.__intensidad = 50  # Encendida a mitad de intensidad por defecto
+        print(f"[INFO] {self.id_dispositivo} encendida (intensidad: {self.__intensidad}%)")
+
+    def apagar(self) -> None:
+        self._set_estado(False)
+        self.__intensidad = 0
+        print(f"[INFO] {self.id_dispositivo} apagada")
+
+    def ajustar_intensidad(self, valor: int) -> None:
+        """Permite ajustar la intensidad si la luz está encendida."""
+        if self.estado and 0 <= valor <= 100:
+            self.__intensidad = valor
+            print(f"[INFO] Intensidad de {self.id_dispositivo} ajustada a {valor}%")
+        else:
+            print(f"[ADVERTENCIA] No se puede ajustar la intensidad de {self.id_dispositivo} (apagada o valor inválido)")
+
+    def mostrar_datos(self) -> None:
+        estado_str = "Encendida" if self.estado else "Apagada"
+        print(f"[LuzInteligente] {self.id_dispositivo} | Estado: {estado_str} | Intensidad: {self.__intensidad}%")
+
+
+# ------------------------------------------------------------
+# Subclase: CamaraSeguridad
+# ------------------------------------------------------------
+class CamaraSeguridad(Dispositivo):
+    """Cámara de seguridad que puede estar grabando o inactiva."""
+
+    def __init__(self, id_dispositivo: str) -> None:
+        super().__init__(id_dispositivo)
+        self.__grabando: bool = False
+
+    def encender(self) -> None:
+        self._set_estado(True)
+        self.__grabando = True
+        print(f"[INFO] {self.id_dispositivo} encendida y grabando.")
+
+    def apagar(self) -> None:
+        self._set_estado(False)
+        self.__grabando = False
+        print(f"[INFO] {self.id_dispositivo} apagada y grabación detenida.")
+
+    def mostrar_datos(self) -> None:
+        estado_str = "Encendida" if self.estado else "Apagada"
+        grabando_str = "Sí" if self.__grabando else "No"
+        print(f"[CamaraSeguridad] {self.id_dispositivo} | Estado: {estado_str} | Grabando: {grabando_str}")
+
+
+# ------------------------------------------------------------
+# Subclase: SensorMovimiento
+# ------------------------------------------------------------
+class SensorMovimiento(Dispositivo):
+    """Sensor que detecta movimiento de forma aleatoria (simulada)."""
+
+    def __init__(self, id_dispositivo: str) -> None:
+        super().__init__(id_dispositivo)
+        self.__movimiento_detectado: bool = False
+
+    def encender(self) -> None:
+        self._set_estado(True)
+        print(f"[INFO] {self.id_dispositivo} activado para detección de movimiento.")
+
+    def apagar(self) -> None:
+        self._set_estado(False)
+        self.__movimiento_detectado = False
+        print(f"[INFO] {self.id_dispositivo} desactivado.")
+
+    def detectar_movimiento(self) -> bool:
+        """Simula la detección de movimiento con probabilidad aleatoria."""
+        if self.estado:
+            self.__movimiento_detectado = random.choice([True, False])
+        else:
+            self.__movimiento_detectado = False
+        return self.__movimiento_detectado
+
+    def mostrar_datos(self) -> None:
+        estado_str = "Activo" if self.estado else "Inactivo"
+        mov_str = "Sí" if self.__movimiento_detectado else "No"
+        print(f"[SensorMovimiento] {self.id_dispositivo} | Estado: {estado_str} | Movimiento detectado: {mov_str}")
+
+    @property
+    def movimiento_detectado(self) -> bool:
+        """Propiedad de solo lectura."""
+        return self.__movimiento_detectado
+
+
+# ------------------------------------------------------------
+# Clase de composición: CasaInteligente
+# ------------------------------------------------------------
+class CasaInteligente:
+    """
+    Clase que representa la casa, la cual contiene varios dispositivos inteligentes.
+    Implementa composición: cada dispositivo es parte de la CasaInteligente.
+    """
+
+    def __init__(self) -> None:
+        self.__dispositivos: List[Dispositivo] = []
+
+    def agregar_dispositivo(self, dispositivo: Dispositivo) -> None:
+        """Agrega un dispositivo a la casa."""
+        self.__dispositivos.append(dispositivo)
+        print(f"[INFO] Dispositivo {dispositivo.id_dispositivo} agregado a la casa.")
+
+    def mostrar_todos(self) -> None:
+        """Muestra los datos de todos los dispositivos (polimorfismo)."""
+        print("\n=== ESTADO ACTUAL DE DISPOSITIVOS ===")
+        for d in self.__dispositivos:
+            d.mostrar_datos()
+        print("=====================================\n")
+
+    def ejecutar_escena(self) -> None:
+        """
+        Escenario automático:
+        - Si algún sensor detecta movimiento → encender luces y cámaras.
+        - Si no hay movimiento → apagar luces y cámaras.
+        """
+        hay_movimiento = any(
+            isinstance(d, SensorMovimiento) and d.movimiento_detectado
+            for d in self.__dispositivos
+        )
+
+        if hay_movimiento:
+            print("[ESCENA] Movimiento detectado → encendiendo luces y cámaras.")
+            for d in self.__dispositivos:
+                if isinstance(d, LuzInteligente):
+                    d.encender()
+                    d.ajustar_intensidad(80)
+                elif isinstance(d, CamaraSeguridad):
+                    d.encender()
+        else:
+            print("[ESCENA] Sin movimiento → apagando luces y cámaras.")
+            for d in self.__dispositivos:
+                if isinstance(d, LuzInteligente) or isinstance(d, CamaraSeguridad):
+                    d.apagar()
+
+
+# ------------------------------------------------------------
+# Simulación principal
+# ------------------------------------------------------------
+if __name__ == "__main__":
+    random.seed(42)
+
+    # Crear instancia de la casa
+    casa = CasaInteligente()
+
+    # Crear al menos 5 dispositivos de distintos tipos
+    luz1 = LuzInteligente("Luz_Sala")
+    luz2 = LuzInteligente("Luz_Cocina")
+    cam1 = CamaraSeguridad("Camara_Patio")
+    cam2 = CamaraSeguridad("Camara_Garaje")
+    sensor = SensorMovimiento("Sensor_Puerta")
+
+    # Agregar dispositivos a la casa
+    for d in [luz1, luz2, cam1, cam2, sensor]:
+        casa.agregar_dispositivo(d)
+        d.encender()
+
+    # Simular 3 ciclos de monitoreo
+    for ciclo in range(1, 4):
+        print(f"\n--- CICLO {ciclo} ---")
+        sensor.detectar_movimiento()
+        casa.ejecutar_escena()
+        casa.mostrar_todos()
+        time.sleep(2)
+
+    print("=== FIN DE SIMULACIÓN ===")
